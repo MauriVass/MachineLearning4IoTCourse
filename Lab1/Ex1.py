@@ -77,13 +77,6 @@ if __name__=='__main__':
 	parser.add_argument('-o', type=str, help='output', required=True)
 	args = parser.parse_args()
 
-	#Create a parser obj to get input parameters
-	parser = argparse.ArgumentParser()
-	parser.add_argument('--duration', type=int, help='duration in s', required=True)
-	parser.add_argument('--frequency', type=int, help='sampling rate in Hz', required=True)
-	parser.add_argument('-o', type=str, help='output', required=True)
-	args = parser.parse_args()
-
 	#Save the input parameters in variables
 	duration = args.duration
 	freq = args.frequency
