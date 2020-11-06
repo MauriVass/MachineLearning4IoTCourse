@@ -2,7 +2,7 @@
 Python script which resample an audio file from an high frequency to a lower one.
 This is useful to reduce the file size without losing to much information.
 Input:
--The program requires 2 parameters: an input .wav file, the name of the output file (optional)
+-The program requires 2 parameters: an input .wav file, the name of the output file
 Output:
 -A .wav file
 '''
@@ -59,7 +59,7 @@ if __name__=='__main__':
 	#Receive input parameter
 	parser = argparse.ArgumentParser()
 	parser.add_argument('-i', type=str, help='input .wav file', required=True)
-	parser.add_argument('-o', type=str, help='output .wav file', required=False)
+	parser.add_argument('-o', type=str, help='output .wav file', required=True)
 	args = parser.parse_args()
 
 	resampler = Resampler()
