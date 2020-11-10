@@ -28,8 +28,8 @@ class STFT:
 		tf_audio = tf.squeeze(tf_audio, 1)
 
 		#Hyperparameters. (Maybe) Good values: 0.04, 0.02
-		frame_length = float(frame_length)
-		stride = float(stride)
+		frame_length = frame_length
+		stride = stride
 		frame_length = int(rate.numpy() * frame_length)
 		frame_step = int(rate.numpy() * stride)
 		print(f'Frame length: {frame_length}, frame step: {frame_step}')
@@ -75,8 +75,8 @@ class STFT:
 if __name__=='__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument('-i', type=str, help='input .wav file', required=True)
-	parser.add_argument('--frame', type=str, help='the window frame size (in seconds)', required=True)
-	parser.add_argument('--stride', type=str, help='the window stride size (in seconds)', required=True)
+	parser.add_argument('--frame', type=float, help='the window frame size (in seconds)', required=True)
+	parser.add_argument('--stride', type=float, help='the window stride size (in seconds)', required=True)
 	parser.add_argument('-o', type=str, help='output file (no extension)', required=True)
 	args = parser.parse_args()
 
