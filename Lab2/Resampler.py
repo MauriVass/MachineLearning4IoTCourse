@@ -1,8 +1,8 @@
 '''
 Python script which resample an audio file from an high frequency to a lower one.
-This is useful to reduce the file size without losing to much information.
+This preprocessing step is useful to reduce the file size without losing too much information.
 Input:
--The program requires 2 parameters: an input .wav file, the name of the output file
+-The program requires 2 parameters: an input .wav file, the name of the output .wav file
 Output:
 -A .wav file
 '''
@@ -36,10 +36,11 @@ class Resampler:
 		#Frequency used to resample the audio file.
 		#This value should a number such that the value ratio=init_freq/sampling_freq is integer.
 		#In this case the init_frq is 48k and sampling_rate is 16k
-		sampling_freq = 16000
+		sampling_freq = 16000 #Hyperparameter
 		ratio = rate / sampling_freq
 
 		start_time = time.time()
+		#This technique help also to reduce aliasing
 		audio = signal.resample_poly(audio,1,ratio)
 		end_time = time.time()
 		exec_time = end_time - start_time
@@ -50,7 +51,7 @@ class Resampler:
 		output_file = output
 		wavfile.write(output_file,sampling_freq,audio)
 
-		#Print the value of the output file (should be lower the the input size)
+		#Print the value of the output file (should be lower the the input file size, in particular output_size=input_size/ratio)
 		final_size = os.path.getsize(output_file)
 		print(f'Initial size {final_size}')
 
