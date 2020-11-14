@@ -1,5 +1,5 @@
 '''
-Python script that calculate the Mel-Frequency Cepstral Coefficients(MFCC) of a given spectrogram.
+Python script that calculates the Mel-Frequency Cepstral Coefficients(MFCC) of a given spectrogram.
 Input:
 -The program requires 2 parameters:
 	-an input .spect file,
@@ -74,8 +74,8 @@ class MFCC:
 if __name__=='__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument('-i',type=str, help='input spectrogram file', required=True)
-	parser.add_argument('--filters',type=int, help='input spectrogram file', required=True)
-	parser.add_argument('--coefficients',type=int, help='input spectrogram file', required=True)
+	parser.add_argument('--filters',type=int, help='number of filters', required=True)
+	parser.add_argument('--coefficients',type=int, help='number of coefficients', required=True)
 	parser.add_argument('-o',type=str, help='output file', required=True)
 	args = parser.parse_args()
 
@@ -84,5 +84,5 @@ if __name__=='__main__':
 	sampling_resolution = 16000 #from previous pre-processing steps
 	low_freq = 20
 	high_freq = 4000
-	mfcc = MFCC(mel_filters,coefficients,16000,20,4000)
+	mfcc = MFCC(mel_filters,coefficients,sampling_resolution,low_frew,high_freq)
 	mfcc.CalculateMFCC(args.i,args.o)
