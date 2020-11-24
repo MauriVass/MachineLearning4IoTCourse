@@ -51,7 +51,6 @@ class WindowGenerator:
 		self.std = tf.reshape(tf.convert_to_tensor(std), [1, 1, 2])
 
 	def split_window(self, features):
-		input_indeces = np.arange(self.input_width)
 		inputs = features[:, :-1, :]
 
 		if self.label_options < 2:
@@ -94,33 +93,47 @@ class WindowGenerator:
 
 class TempHumMAE(keras.metrics.Metric):
 	def __init__(self, name='mean_absolute_error', **kwargs):
-		super().__ini__(name, **kwargs)
+		super().__init__(name, **kwargs)
 		#initialiaze the variables used to calculate the loss
-		self.counter = self.add_weight(name='counter', initializer='zeros')
+		self.count = self.add_weight(name='count', initializer='zeros')
 		#The shape [2]('shape=(2,)' is equivalent) is for temperature ad humidity
-		self.total = self.add_weight(name='total', initializer='zeros', shape=[2])
+		self.total = self.add_weight(name='total', initializer='zeros', shape=(2,))
 
 	#Called at every batch of data
 	def update_state(self, y_true, y_pred, sample_weight=None):
+		#print('\n Start UpdateState\n')
+		print('True ', y_true.shape)
+		print('Pred ', y_pred.shape,'\n')
 		error = tf.abs(y_pred-y_true)
 		error = tf.reduce_mean(error, axis=0)
+		#print('Error: ', error, '\n')
 		#You can just use + sign but it is better to use assign_add method
 		self.total.assign_add(error)
-		self.counter.assign_add(1)
-
+		self.count.assign_add(1.)
+		#print(self.total, self.counter)
+		#print('End UpdateState \n')
+		return
 	def reset_state(self):
-		self.counter.assign(tf.zeros_like(self.counter))
+		#print('\n Resey state')
+		#print(self.counter)
+		self.count.assign(tf.zeros_like(self.count))
+		#print(self.counter)
+		#print(self.total)
 		self.total.assign(tf.zeros_like(self.total))
-
+		#print(self.total)
+		#print('End ResetState \n')
+		return
 	def result(self):
+		#print('\n Result')
 		#Does not raise an error if we try to divide by 0
-		resultt = tf.math.divide_no_nan(self.total, self.counter)
-		return result
+		results = tf.math.divide_no_nan(self.total, self.count)
+		#print('End Results \n')
+		return results
 
 class Model:
 	def __init__(self,label,model_type):
 		self.n_output = 1 if label < 2 else 2
-		metric = ['mae'] if label < 2 else TempHumMAE
+		self.metric = ['mae'] if label < 2 else [TempHumMAE()]
 		if(model_type=='MLP'):
 			self.model = self.MLPmodel()
 		elif(model_type=='CNN'):
@@ -129,8 +142,9 @@ class Model:
 			self.model = self.LSTMmodel()
 		self.model.build()
 		print(self.model.summary())
-		self.model.compile(optimizer='adam', loss=tf.keras.losses.MeanSquaredError(), metrics=['mae'])
+		self.model.compile(optimizer='adam', loss=tf.keras.losses.MeanSquaredError(), metrics=self.metric)
 		self.debug= 100
+		print(f'#Out: {self.n_output}, metric: {self.metric}, model: {model_type}')
 
 	def MLPmodel(self):
 		model = keras.Sequential([
@@ -142,7 +156,7 @@ class Model:
 		return model
 	def CNNmodel(self):
 		model = keras.Sequential([
-					keras.layers.Conv1D(input_shape=(6,2), filters=64,kernel_size=3,activation='relu'),
+					keras.layers.Conv1D(input_shape=(6,2), filters=64,kernel_size=(3,),activation='relu'),
 					keras.layers.Flatten(input_shape=(64,2)),
 					keras.layers.Dense(64, activation='relu'),
 					keras.layers.Dense(self.n_output),
@@ -157,24 +171,13 @@ class Model:
 		return model
 
 	def Train(self,train,validation,epoch):
-		n = len(train)
-		for i, (x,y) in enumerate(train):
-			if(i%self.debug==0 and i>0):
-				print(f'{i}/{n}')
-			#	self.Test(validation)
-			history = self.model.fit(x, y, batch_size=32, epochs=epoch, verbose=0)
+		history = self.model.fit(train, batch_size=32, epochs=epoch, verbose=1, validation_data=validation, validation_steps=100, initial_epoch=0)
 		return history
 
 	def Test(self, test):
-		n = len(test)
-		for i, (x,y) in enumerate(test):
-			if(i%self.debug==0 and i>0):
-				print(f'{i}/{n}')
-			#You get both errors for temp and humi
-			#loss, error = model.evaluate(...)
-			loss = self.model.evaluate(x,y)
-			print(f'Loss Test: {loss}')
-		return loss
+		loss, error = self.model.evaluate(test, verbose=1)
+		return (loss, error)
+
 	def SaveModel(self,output):
 		run_model = tf.function(lambda x: self.model(x))
 		concrete_func = run_model.get_concrete_function(tf.TensorSpec([1,6,2], tf.float32))
@@ -193,8 +196,14 @@ if(False):
 		print(x.shape,x) #(32,6,2)
 		print(y.shape,y) #(32,6,1 or 2)
 
-
 model = Model(LABEL_OPTIONS,model_type)
-model.Train(train_ds,val_ds,20) #20
-loss = model.Test(test_ds)
+hist = model.Train(train_ds, val_ds, 1)
+loss, error = model.Test(test_ds)
+
+if(LABEL_OPTIONS<2):
+	temp_loss = error
+	print(f'Loss: Temp={temp_loss}')
+else:
+	temp_loss, hum_loss = error
+	print(f'Loss: Temp={temp_loss}, Hum={hum_loss}')
 model.SaveModel('model/')
