@@ -101,33 +101,18 @@ class TempHumMAE(keras.metrics.Metric):
 
 	#Called at every batch of data
 	def update_state(self, y_true, y_pred, sample_weight=None):
-		#print('\n Start UpdateState\n')
-		print('True ', y_true.shape)
-		print('Pred ', y_pred.shape,'\n')
 		error = tf.abs(y_pred-y_true)
 		error = tf.reduce_mean(error, axis=0)
-		#print('Error: ', error, '\n')
 		#You can just use + sign but it is better to use assign_add method
 		self.total.assign_add(error)
 		self.count.assign_add(1.)
-		#print(self.total, self.counter)
-		#print('End UpdateState \n')
 		return
-	def reset_state(self):
-		#print('\n Resey state')
-		#print(self.counter)
+	def reset_states(self):
 		self.count.assign(tf.zeros_like(self.count))
-		#print(self.counter)
-		#print(self.total)
 		self.total.assign(tf.zeros_like(self.total))
-		#print(self.total)
-		#print('End ResetState \n')
 		return
 	def result(self):
-		#print('\n Result')
-		#Does not raise an error if we try to divide by 0
 		results = tf.math.divide_no_nan(self.total, self.count)
-		#print('End Results \n')
 		return results
 
 class Model:
@@ -143,8 +128,6 @@ class Model:
 		self.model.build()
 		print(self.model.summary())
 		self.model.compile(optimizer='adam', loss=tf.keras.losses.MeanSquaredError(), metrics=self.metric)
-		self.debug= 100
-		print(f'#Out: {self.n_output}, metric: {self.metric}, model: {model_type}')
 
 	def MLPmodel(self):
 		model = keras.Sequential([
@@ -171,7 +154,7 @@ class Model:
 		return model
 
 	def Train(self,train,validation,epoch):
-		history = self.model.fit(train, batch_size=32, epochs=epoch, verbose=1, validation_data=validation, validation_steps=100, initial_epoch=0)
+		history = self.model.fit(train, batch_size=32, epochs=epoch, verbose=0, validation_data=validation, validation_steps=100)
 		return history
 
 	def Test(self, test):
@@ -197,7 +180,7 @@ if(False):
 		print(y.shape,y) #(32,6,1 or 2)
 
 model = Model(LABEL_OPTIONS,model_type)
-hist = model.Train(train_ds, val_ds, 1)
+hist = model.Train(train_ds, val_ds, 20)
 loss, error = model.Test(test_ds)
 
 if(LABEL_OPTIONS<2):
