@@ -38,15 +38,18 @@ class Mic:
 		#After this memory is full, it will be freed storing the samples on the HD
 		self.chunk = 4800
 		self.record_seconds = dur
-		self.output_file = output
 
-	def Record(self):
-		audio = pyaudio.PyAudio()
+		self.audio = pyaudio.PyAudio()
 
-		stream = audio.open(format=self.resolution,
+		self.stream = self.audio.open(format=self.resolution,
 			channels=self.channels,
 			rate= self.rate, input=True,
 			frames_per_buffer=self.chunk)
+		self.stream.wait()
+
+		self.output_file = output
+
+	def Record(self):
 		print('Recording')
 		frames = []
 
@@ -56,14 +59,12 @@ class Mic:
 			data = stream.read(self.chunk, exception_on_overflow=False)
 			frames.append(data)
 
+		#Close streaming and destroy audio obj to free the memory
+		stream.stop_stream()
+
 		time_end = time.time()
 		elapsed_time = time_end - time_start
 		print(f'Finished Recording. Elapsed time {elapsed_time:.3f}')
-
-		#Close streaming and destroy audio obj to free the memory
-		stream.stop_stream()
-		stream.close()
-		audio.terminate()
 
 		time_start = time.time()
 		#Save file as a binary file
@@ -81,6 +82,10 @@ class Mic:
 
 		#Print the file size value: higher resolution means higher file size
 		print(f'File Size {os.path.getsize(self.output_file)/10**3}KB')
+
+		def CloseBuffer(self):
+			self.stream.close()
+			self.audio.terminate()
 
 if __name__=='__main__':
 	#Create a parser obj to get input parameters
@@ -101,4 +106,6 @@ if __name__=='__main__':
 	microphone = Mic(duration,rate,resolution,file_name)
 	#Start recording
 	microphone.Record()
+	#Close Stream
+	microphone.CloseBuffer()
 
