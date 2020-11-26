@@ -27,8 +27,14 @@ class SignalGenerator:
 		self.num_coefficients = num_coefficients
 		self.mfccs=mfcc
 
-
-		if(mfcc is True):
+		if(mfcc):
+			num_spectrogram_bins = frame_length // 2 + 1
+			self.linear_to_mel_weight_matrix = tf.signal.linear_to_mel_weight_matrix(
+					self.num_mel_bins,
+					num_spectrogram_bins,
+					self.sampling_rate,
+					self.lower_frequency,
+					self.upper_frequency)
 			self.preprocess = self.preprocess_with_mfcc
 		else:
 			self.preprocess = self.preprocess_with_stft
@@ -36,10 +42,11 @@ class SignalGenerator:
 
 	def read(self, file_path):
 		parts = tf.strings.split(file_path, os.path.sep)
-		label = parts[2]
+		label = parts[-2]
 		label_id = tf.argmax(label == self.labels)
 		audio_bynary = tf.io.read_file(file_path)
 		audio, _ = tf.audio.decode_wav(audio_bynary)
+		#print('Sampling: ', np.array(r))
 		audio = tf.squeeze(audio, axis=1)
 		return audio, label_id
 
@@ -59,12 +66,13 @@ class SignalGenerator:
 		spectrogram = tf.abs(stft)
 		return spectrogram
 
-	def get_mfcc(self, spectrogram):
-		mel_spectrogram = tf.tensordot(spectrogram, self.linerar_to_mel_weight_matrix, 1)
+	def get_mfccs(self, spectrogram):
+		mel_spectrogram = tf.tensordot(spectrogram,
+						self.linear_to_mel_weight_matrix, 1)
 		log_mel_spectrogram = tf.math.log(mel_spectrogram + 1.e-6)
 		mfccs = tf.signal.mfccs_from_log_mel_spectrograms(log_mel_spectrogram)
-		mfccs = mfccs[..., :self.num_coefficients]
-		return mfcc
+		mfccs = mfccs[:, :self.num_coefficients]
+		return mfccs
 
 	def preprocess_with_stft(self, file_path):
 		audio, label = self.read(file_path)
@@ -78,9 +86,9 @@ class SignalGenerator:
 		audio, label = self.read(file_path)
 		audio = self.pad(audio)
 		spectrogram = self.get_spectrogram(audio)
-		mfcc = self.get_mffcs(spectrogram)
-		mfcc = tf.expand_dims(mfcc, -1)
-		return mfcc, label
+		mfccs = self.get_mfccs(spectrogram)
+		mfccs = tf.expand_dims(mfccs, -1)
+		return mfccs, label
 
 	def make_dataset(self, files, train=False):
 		#This method creates a dataset from a numpy array (our listfile path)
@@ -107,13 +115,11 @@ class Model:
 			self.model = self.CNNmodel()
 		elif(model_type=='DSCNN'):
 			self.model = self.DSCNNmodel()
-		self.model.build()
-		print(self.model.summary())
 		self.model.compile(optimizer='adam', loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True), metrics=[tf.metrics.SparseCategoricalAccuracy()])
 
 	def MLPmodel(self):
 		model = keras.Sequential([
-					keras.layers.Flatten(input_shape=(32,32)),
+					keras.layers.Flatten(),
 					keras.layers.Dense(256, activation='relu'),
 					keras.layers.Dense(256, activation='relu'),
 					keras.layers.Dense(256, activation='relu'),
@@ -123,13 +129,13 @@ class Model:
 	#Strides = [2,2] if STFT, [2,1] if MFCC
 	def CNNmodel(self):
 		model = keras.Sequential([
-					keras.layers.Conv2D(input_shape=(32,32,1),filters=128,kernel_size=[3,3],strides=self.strides,use_bias=False),
+					keras.layers.Conv2D(filters=128,kernel_size=[3,3],strides=self.strides,use_bias=False),
 					keras.layers.BatchNormalization(momentum=0.1),
 					keras.layers.Activation('relu'),
-					keras.layers.Conv2D(input_shape=(128,128), filters=128,kernel_size=[3,3],strides=[1,1],use_bias=False),
+					keras.layers.Conv2D(filters=128,kernel_size=[3,3],strides=[1,1],use_bias=False),
 					keras.layers.BatchNormalization(momentum=0.1),
 					keras.layers.Activation('relu'),
-					keras.layers.Conv2D(input_shape=(128,128),filters=128,kernel_size=[3,3],strides=[1,1],use_bias=False),
+					keras.layers.Conv2D(filters=128,kernel_size=[3,3],strides=[1,1],use_bias=False),
 					keras.layers.BatchNormalization(momentum=0.1),
 					keras.layers.Activation('relu'),
 					keras.layers.GlobalAveragePooling2D(),
@@ -138,7 +144,7 @@ class Model:
 		return model
 	def DSCNNmodel(self):
 		model = keras.Sequential([
-					keras.layers.Conv2D(input_shape=(32,32,1),filters=256,kernel_size=[3,3],strides=self.strides,use_bias=False),
+					keras.layers.Conv2D(filters=256,kernel_size=[3,3],strides=self.strides,use_bias=False), #input_shape=(32,32,1)
 					keras.layers.BatchNormalization(momentum=0.1),
 					keras.layers.Activation('relu'),
 					keras.layers.DepthwiseConv2D(kernel_size=[3, 3], strides=[1, 1], use_bias=False),
@@ -165,9 +171,9 @@ class Model:
 		return (loss, error)
 
 	def SaveModel(self,output):
-		run_model = tf.function(lambda x: self.model(x))
-		concrete_func = run_model.get_concrete_function(tf.TensorSpec([1,6,2], tf.float32))
-		self.model.save(output, signatures=concrete_func)
+		#run_model = tf.function(lambda x: self.model(x))
+		#concrete_func = run_model.get_concrete_function(tf.TensorSpec([1,6,2], tf.float32))
+		self.model.save(output) #, signatures=concrete_func)
 
 model = args.model
 mfcc = args.mfcc
@@ -201,13 +207,22 @@ if(mfcc):
 else:
 	sg = SignalGenerator(labels=LABELS, sampling_rate=16000, frame_length=256, frame_step=128)
 
-#print(train_files)
 train_ds = sg.make_dataset(train_files,True)
 val_ds = sg.make_dataset(validation_files)
 test_ds = sg.make_dataset(test_files)
 print(f'Train: {len(train_ds)}, Val: {len(val_ds)}, Test: {len(test_ds)}')
 
+#for x,y in train_ds.take(1):
+#	print(x.shape,y.shape)
+
+#for m in ['MLP', 'CNN', 'DSCNN']:
+#	for f in [False, True]:
+#		print(f'\n\nModel: {m}, mfcc: {f}')
+#		model = m
+#		mfcc = f
+
 model = Model(model,mfcc)
-model.Train(train_ds,val_ds,1) #20
+model.Train(train_ds,val_ds,20)
 loss = model.Test(test_ds)
-#model.SaveModel('model/')
+model.model.summary()
+model.SaveModel('model/')
