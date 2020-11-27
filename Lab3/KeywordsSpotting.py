@@ -8,6 +8,7 @@ from tensorflow import keras
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', type=str, required=False, default='MLP')
 parser.add_argument('-mfcc', action='store_true')
+parser.add_argument('-silence', action='store_true')
 args = parser.parse_args()
 
 #Set a seed to get repricable results
@@ -177,6 +178,7 @@ class Model:
 
 model = args.model
 mfcc = args.mfcc
+silence = args.silence
 
 #Download and extract the .csv file. The result is cached to avoid to download everytime
 zip_path = tf.keras.utils.get_file(
@@ -189,6 +191,8 @@ data_dir = os.path.join('.', 'data', 'mini_speech_commands')
 #Store in a list all files as a string inside a given path
 filenames = tf.io.gfile.glob(str(data_dir) + '/*/*')
 #Shuffle to have a uniform distribution of the samples
+if(silence is False):
+	filenames = [x for x in filenames if x.find('silence')<0]
 filenames = tf.random.shuffle(filenames)
 num_samples = len(filenames)
 
@@ -196,10 +200,14 @@ train_files = filenames[:int(num_samples*0.8)]
 validation_files = filenames[int(num_samples*0.8):int(num_samples*0.9)]
 test_files = filenames[int(num_samples*0.9):]
 
+
 #Extract the labes: folders inside the data folder
 LABELS = np.array(tf.io.gfile.listdir(str(data_dir)))
-#Remove the 'README.md' fil, since not useful
+#Remove the 'README.md' file, since not useful
 LABELS = LABELS[LABELS != 'README.md']
+
+if(silence is False):
+	LABELS = LABELS[LABELS != 'silence']
 
 if(mfcc):
 	sg = SignalGenerator(labels=LABELS, sampling_rate=16000, frame_length=640, frame_step=320,
@@ -215,14 +223,15 @@ print(f'Train: {len(train_ds)}, Val: {len(val_ds)}, Test: {len(test_ds)}')
 #for x,y in train_ds.take(1):
 #	print(x.shape,y.shape)
 
-#for m in ['MLP', 'CNN', 'DSCNN']:
-#	for f in [False, True]:
-#		print(f'\n\nModel: {m}, mfcc: {f}')
-#		model = m
-#		mfcc = f
+for m in ['MLP', 'CNN', 'DSCNN']:
+	for f in [False, True]:
+		print(f'\n\nModel: {m}, mfcc: {f}')
+		model = m
+		mfcc = f
 
-model = Model(model,mfcc)
-model.Train(train_ds,val_ds,20)
-loss = model.Test(test_ds)
-model.model.summary()
+		model = Model(model,mfcc)
+		model.Train(train_ds,val_ds,20)
+		loss, error = model.Test(test_ds)
+		print('Evaluation Error: ',error)
+		model.model.summary()
 model.SaveModel('model/')
