@@ -125,13 +125,11 @@ class Model:
 			self.model = self.CNNmodel()
 		elif(model_type=='LSTM'):
 			self.model = self.LSTMmodel()
-		self.model.build()
-		print(self.model.summary())
 		self.model.compile(optimizer='adam', loss=tf.keras.losses.MeanSquaredError(), metrics=self.metric)
 
 	def MLPmodel(self):
 		model = keras.Sequential([
-					keras.layers.Flatten(input_shape=(6,2)),
+					keras.layers.Flatten(),
 					keras.layers.Dense(128, activation='relu'),
 					keras.layers.Dense(128, activation='relu'),
 					keras.layers.Dense(self.n_output),
@@ -139,7 +137,7 @@ class Model:
 		return model
 	def CNNmodel(self):
 		model = keras.Sequential([
-					keras.layers.Conv1D(input_shape=(6,2), filters=64,kernel_size=(3,),activation='relu'),
+					keras.layers.Conv1D(filters=64,kernel_size=(3,),activation='relu'),
 					keras.layers.Flatten(input_shape=(64,2)),
 					keras.layers.Dense(64, activation='relu'),
 					keras.layers.Dense(self.n_output),
@@ -147,14 +145,14 @@ class Model:
 		return model
 	def LSTMmodel(self):
 		model = keras.Sequential([
-					keras.layers.LSTM(input_shape=(6,2), units=64),
+					keras.layers.LSTM(units=64),
 					keras.layers.Flatten(input_shape=(64,2)),
 					keras.layers.Dense(self.n_output),
 				])
 		return model
 
 	def Train(self,train,validation,epoch):
-		history = self.model.fit(train, batch_size=32, epochs=epoch, verbose=0, validation_data=validation, validation_steps=100)
+		history = self.model.fit(train, batch_size=32, epochs=epoch, verbose=1, validation_data=validation, validation_steps=10)
 		return history
 
 	def Test(self, test):
@@ -189,4 +187,5 @@ if(LABEL_OPTIONS<2):
 else:
 	temp_loss, hum_loss = error
 	print(f'Loss: Temp={temp_loss}, Hum={hum_loss}')
-model.SaveModel('model/')
+print(model.model.summary())
+model.SaveModel(f'models/model_{model_type}/')
