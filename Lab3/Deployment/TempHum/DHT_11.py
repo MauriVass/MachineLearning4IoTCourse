@@ -39,13 +39,15 @@ class DHT_11:
 		for i in range(cycles):
 			#Read the value of temp and humi. Sometimes it raises an exception, it is handled set the value to -1
 			try:
-				temperature = self.dht_device.temperature
+				#Remember to apply the safe preprocessing step of the training. Both temp and hum
+				temperature = (self.dht_device.temperature - 9.11) / (8.65 + 1.e-6) if i<6 else self.dht_device.temperature
 			except:
-				temperature = -1
+				#To avoid large MAE, substitute -1 with the mean
+				temperature = 9.11
 			try:
-				humidity  = self.dht_device.humidity
+				humidity  = (self.dht_device.humidity - 75.9) / (16.55 + 1.e-6) if i<6 else self.dht_device.humidity
 			except:
-				humidity = -1
+				humidity = 75.9
 			values.append([temperature,humidity])
 
 			time.sleep(self.freq)
