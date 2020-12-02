@@ -104,8 +104,11 @@ class SignalGenerator:
 		return ds
 
 class Model:
-	def __init__(self,model_type,mfcc):
-		self.n_output = 8
+	def __init__(self,model_type,mfcc,silence):
+		if(silence):
+			self.n_output = 9
+		else:
+			self.n_output = 8
 		if(mfcc):
 			self.strides = [2,1]
 		else:
@@ -117,6 +120,13 @@ class Model:
 		elif(model_type=='DSCNN'):
 			self.model = self.DSCNNmodel()
 		self.model.compile(optimizer='adam', loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True), metrics=[tf.metrics.SparseCategoricalAccuracy()])
+		self.checkpoint_path = 'KSckp/'
+		self.model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+									filepath=self.checkpoint_path,
+									save_weights_only=True,
+									monitor='sparse_categorical_accuracy',
+									mode='max',
+									save_best_only=True)
 
 	def MLPmodel(self):
 		model = keras.Sequential([
@@ -163,11 +173,12 @@ class Model:
 
 	def Train(self,train,validation,epoch):
 		print('Training')
-		history = self.model.fit(train, batch_size=32, epochs=epoch, verbose=1, validation_data=validation, validation_steps=5)
+		history = self.model.fit(train, batch_size=32, epochs=epoch, verbose=1, validation_data=validation, validation_freq=2, callbacks=self.model_checkpoint_callback)
 		return history
 
 	def Test(self, test):
 		print('Evaluation')
+		self.model.load_weights(self.checkpoint_path)
 		loss, error = self.model.evaluate(test, verbose=1)
 		return (loss, error)
 
@@ -229,8 +240,8 @@ for m in ['MLP', 'CNN', 'DSCNN']:
 		model = m
 		mfcc = f
 
-		model = Model(model,mfcc)
-		model.Train(train_ds,val_ds,20)
+		model = Model(model,mfcc,silence)
+		hist = model.Train(train_ds,val_ds,20)
 		loss, error = model.Test(test_ds)
 		print('Evaluation Error: ',error)
 		model.model.summary()
