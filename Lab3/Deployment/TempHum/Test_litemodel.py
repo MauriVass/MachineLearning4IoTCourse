@@ -62,7 +62,6 @@ else:
 		input_data = x
 		y_true = y.numpy()[0]
 
-		
 		interpreter.set_tensor(input_details[0]['index'], input_data)
 		interpreter.invoke()
 		my_output = interpreter.get_tensor(output_details[0]['index'])[0]
