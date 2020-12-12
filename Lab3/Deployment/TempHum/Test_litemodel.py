@@ -2,17 +2,27 @@ import tensorflow as tf
 from DHT_11 import DHT_11
 import numpy as np
 import zlib
+import os
+
+print('----	---	---	----')
+print('REQUIREMENTS:')
+print('a) T MAE < 0.5°C and Rh MAE < 1.8% and TFLite Size < 2 kB')
+print('b) T MAE < 0.6 °C and Rh MAE < 1.9% and TFLite Size < 1.7 kB')
+print('----	---	---	----\n')
 
 
 #Decompress
-model_path = 'THmodelMLPalpha0.25spars0.9.tflite_W.zip'
+model_path_a = 'THmodelMLPalpha0.25spars0.9.tflite_W.zip'
+model_path_b = 'THmodelMLP.tflite.zip'
+model_path = model_path_b
+print(f'Model Size: {(os.path.getsize(model_path)/1024):.2f} Kb')
 with open(model_path, 'rb') as fp:
-    model = zlib.decompress(fp.read())
-    output_model = model_path[:-4]
-    file = open(output_model,'wb')
-    print('Saving: ',output_model)
-    file.write(model)
-    file.close()
+	model = zlib.decompress(fp.read())
+	output_model = model_path[:-4]
+	file = open(output_model,'wb')
+	print('Saving: ',output_model)
+	file.write(model)
+	file.close()
 
 interpreter = tf.lite.Interpreter(model_path=output_model)
 interpreter.allocate_tensors()
