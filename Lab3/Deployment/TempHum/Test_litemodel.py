@@ -12,9 +12,9 @@ print('----	---	---	----\n')
 
 
 #Decompress
-model_path_a = 'THmodelMLPalpha0.25spars0.9.tflite_W.zip'
-model_path_b = 'THmodelMLP.tflite.zip'
-model_path = model_path_b
+model_path_a = 'Models/TH_MLPalpha0_25spars0_9.tflite_W.zip'
+model_path_b = 'Models/THmodelMLP.tflite.zip'
+model_path = model_path_a
 print(f'Model Size: {(os.path.getsize(model_path)/1024):.2f} Kb')
 with open(model_path, 'rb') as fp:
 	model = zlib.decompress(fp.read())
