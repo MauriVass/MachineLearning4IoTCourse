@@ -172,6 +172,12 @@ val_ds = generator.make_dataset(val_data, False)
 test_ds = generator.make_dataset(test_data, False)
 print(f'Train: {len(train_ds)}, Val: {len(val_ds)}, Test: {len(test_ds)}')
 
+
+tf.data.experimental.save(test_ds, './th_test')
+tensor_specs = (tf.TensorSpec([None, 6, 2], dtype=tf.float32),tf.TensorSpec([None, 2]))
+test_ds = tf.data.experimental.load('./th_test', tensor_specs)
+exit(0)
+
 if(False):
 	for x,y in train_ds.take(1):
 		print(x.shape,x) #(32,6,2)
