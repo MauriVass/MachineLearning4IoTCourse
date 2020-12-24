@@ -7,25 +7,18 @@ class StringGeneratorWebService(object):
 	#Required to be accessable online
 	exposed=True
 
-	def GET(self,*path,**query):
+	def Calculation(self,commands,command,operands, operands_name=''):
 		#Variable to generate a json file from
 		output = {}
-		#Possible commands
-		commands = ['add', 'sub', 'mul', 'div']
-		#Any or Multiple commands provided
-		if(len(path)!=1):
-			raise cherrypy.HTTPError(404,f"Use only 1 operation: ['add', 'sub', 'mul', 'div']. Used: {path}")
-		command = str(path[0])
-		#Command not expected
-		if(command not in commands):
-			raise cherrypy.HTTPError(404,f"Operation not recognized. Use: ['add', 'sub', 'mul', 'div']. Used: {command}")
+
+		if(operands_name==''):
+			output['operands'] = operands
+
 		output['command'] = command
-		#Not enough operands
-		if(len(query)<2):
-			raise cherrypy.HTTPError(404,f"Use at least 2 operands. Used: {len(query)}")
+		#Execute calculations
 		res = 0
-		for i,items in enumerate(query.items()):
-			val = float(items[1])
+		for i,op in enumerate(operands):
+			val = float(op)
 			if(i==0):
 				res = val
 			else:
@@ -39,17 +32,65 @@ class StringGeneratorWebService(object):
 					if(val!=0):
 						res /= val
 					else:
-						raise cherrypy.HTTPError(404,f"Division by 0. Element: {items[0]}")
-			output[str(items[0])] = val
+						rep = f'Element: {operands_name[i]}' if operands_name!='' else f'Element position: {i}'
+						raise cherrypy.HTTPError(404,f"Division by 0. {rep}")
+			#Add name:value for each operand
+			if(operands_name!=''):
+				output[str(operands_name[i])] = val
+		#Add the result
 		output['result'] = res
+		return output
+
+	def GET(self,*path,**query):		
+		#Possible commands
+		commands = ['add', 'sub', 'mul', 'div']
+		#Any or Multiple commands provided
+		if(len(path)!=1):
+			raise cherrypy.HTTPError(404,f"Use only 1 operation: ['add', 'sub', 'mul', 'div']. Used: {path}")
+		command = str(path[0])
+		#Command not expected
+		if(command not in commands):
+			raise cherrypy.HTTPError(404,f"Operation not recognized. Use: ['add', 'sub', 'mul', 'div']. Used: {command}")
+		#Not enough operands
+		if(len(query)<2):
+			raise cherrypy.HTTPError(404,f"Use at least 2 operands. Used: {len(query)}")
+		operands_name = list(query.keys())
+		operands = list(query.values())
+		output = self.Calculation(commands,command,operands,operands_name)
 		return json.dumps(output)
 
 	def POST(self,*path,**query):
 		return
+
 	def PUT(self,*path,**query):
-		return
+		input = cherrypy.request.body.read()
+		input = json.loads(input)
+
+		#Any or Multiple commands provided
+		if('command' not in input.keys()):
+			raise cherrypy.HTTPError(404,f"Use only 1 operation: ['add', 'sub', 'mul', 'div']. Used: {input}")
+		command = str(input['command'])
+		#Possible commands
+		commands = ['add', 'sub', 'mul', 'div']
+		#Command not expected
+		if(command not in commands):
+			raise cherrypy.HTTPError(404,f"Operation not recognized. Use: ['add', 'sub', 'mul', 'div']. Used: {command}")
+
+		if('operands' not in input.keys()):
+			raise cherrypy.HTTPError(404,f"Operands not found. Input: {input}")
+		operands = input['operands']
+		#Not enough operands
+		if(len(operands)<2):
+			raise cherrypy.HTTPError(404,f"Use at least 2 operands. Used: {len(operands)}")
+
+		operands = operands
+		output = self.Calculation(commands,command,operands)
+
+		return json.dumps(output)
+
 	def DELETE(self,*path,**query):
 		return
+
 #'request.dispatch': cherrypy.dispatch.MethodDispatcher() => switch from default URL to HTTP compliant approch
 conf = { '/': {	'request.dispatch': cherrypy.dispatch.MethodDispatcher(),
 								'tools.sessions.on':True} 
