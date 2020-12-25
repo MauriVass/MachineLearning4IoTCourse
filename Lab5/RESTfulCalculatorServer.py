@@ -1,9 +1,36 @@
+'''
+RESTful web service that implements a simple calculator. It can accept GET or PUT requests
+(GET)
+Input :
+	- An operations to be executed: [add, sub, mul, div]
+	- A 'dictionary' of values 
+	Example: http://localhost:8080/add?op1=10&op2=12.2
+Output:
+	- A json file
+	Example: {
+				"command": "add",
+				"op1": 10.0
+				"op2": 12.2
+				"result": 22.2
+			}
+
+(PUT)
+Input:
+	- A json file in the body of the request
+	Example: {
+				"command": "add",
+				"operands": [10, 9, 8, 7, 6, 5, 3, 2, 1]
+			}
+Output:
+	- A json file
+	Example: {"operands": [10, 9, 8, 7, 6, 5, 3, 2, 1], "command": "add", "result": 51.0}
+'''
 import random
 import string
 import cherrypy
 import json 
 
-class StringGeneratorWebService(object):
+class CalculatorWebService(object):
 	#Required to be accessable online
 	exposed=True
 
@@ -95,7 +122,7 @@ class StringGeneratorWebService(object):
 conf = { '/': {	'request.dispatch': cherrypy.dispatch.MethodDispatcher(),
 								'tools.sessions.on':True} 
 					}
-cherrypy.tree.mount(StringGeneratorWebService(), '/', conf)
+cherrypy.tree.mount(CalculatorWebService(), '/', conf)
 
 cherrypy.config.update({'servet.socket_host':'0.0.0.0'})
 cherrypy.config.update({'servet.socket_port':'8080'})
