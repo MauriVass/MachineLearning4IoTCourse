@@ -68,7 +68,7 @@ class CalculatorWebService(object):
 		output['result'] = res
 		return output
 
-	def GET(self,*path,**query):		
+	def GET(self,*path,**query):
 		#Possible commands
 		commands = ['add', 'sub', 'mul', 'div']
 		#Any or Multiple commands provided
