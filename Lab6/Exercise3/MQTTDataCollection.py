@@ -32,6 +32,7 @@ class DoSomething():
 
 	def notify(self, topic, msg):
 		# manage here your received message. You can perform some error-check here
+		print(topic,msg)
 		if(topic==self.myMqttClient._topic):
 			r = msg.decode('utf-8')
 			r = json.loads(r)
@@ -42,14 +43,14 @@ class DataCollector():
 	def __init__(self):
 		self.dht_device = adafruit_dht.DHT11(D4)
 
-		self.is_mic_plugged = False
+		self.is_mic_plugged = True
 		if(self.is_mic_plugged):
 			self.audio = pyaudio.PyAudio()
 			self.stream = self.audio.open(format=pyaudio.paInt16,
 				channels=1,
 				rate= 48000, input=True,
 				frames_per_buffer=4800)
-			self.stream.wait()
+			self.stream.stop_stream()
 
 
 	def GetTemp(self):
@@ -67,37 +68,38 @@ class DataCollector():
 			frames = []
 			self.stream.start_stream()
 			for i in range(10):
-				data = stream.read(4800) #, exception_on_overflow=False)
+				data = self.stream.read(4800) #, exception_on_overflow=False)
 				frames.append(data)
 			self.stream.stop_stream()
 			#It is needed to send data over network since you can't send raw bytes
-			audio_64_bytes = base64.b64encode(b''.join(frames))
+			audio_b64bytes = base64.b64encode(b''.join(frames))
 			audio_string = audio_b64bytes.decode()
 			return audio_string
 
 
 if __name__ == "__main__":
-	test = DoSomething("publisher 1")
+	test = DoSomething("Publisher THA")
 	test.run()
-	test.myMqttClient.mySubscribe("/ASD123/date/time/timestampa/Sensor1/Audio/")
+	idtopic = '/ABCDE12345/'
+	test.myMqttClient.mySubscribe(idtopic+'date/time/timestamp/Sensor1/audio/Record/') #+"date/time/timestamp/Sensor1/audio/Record"
 	dc = DataCollector()
 
 	a = 0
 
 	#This is used to publish or not the timestamp (==2 -> publish)
 	counter = 2
-	while (a < 4):
+	while (a < 10):
 		date_time = datetime.datetime.now()
 		timestamp = datetime.datetime.timestamp(date_time)
 
 		date_str = str(date_time.date())
 		time_str = str(date_time.time()).split('.')[0]
 		message = {'date':date_str}
-		test.myMqttClient.myPublish ("/ASD123/date/", json.dumps(message), False)
+		#test.myMqttClient.myPublish (idtopic+"date/", json.dumps(message), False)
 		message['time'] = time_str
-		test.myMqttClient.myPublish ("/ASD123/date/time/", json.dumps(message),False)
-		message['timestamp'] = timestamp
-		test.myMqttClient.myPublish ("/ASD123/date/time/timestamp/", json.dumps(message),False)
+		#test.myMqttClient.myPublish (idtopic+"date/time/", json.dumps(message),False)
+		message['timestamp'] = int(timestamp)
+		#test.myMqttClient.myPublish (idtopic+"date/time/timestamp/", json.dumps(message),False)
 
 
 		events = []
@@ -109,20 +111,25 @@ if __name__ == "__main__":
 			events.append({'n':'humidity', 'u':'%RH', 't':0, 'v':humidity})
 			counter=0
 
-		if(test.record_audio):
-			audio_string = dc.GetAudio()
+		if(test.record_audio): # and self.is_mic_plugged
+			audio_string= None
+			if(dc.is_mic_plugged):
+				audio_string = dc.GetAudio()
 			events.append({'n':'audio', 'u':'/', 't':0, 'vb':audio_string})
 			test.record_audio = False
 
 		ip = '2.44.137.33' + '/'
-		body = {
-					'bn' : 'http://'+ip,
-					'bi' : int(timestamp),
-					'e' : events
-				}
+		for e in events:
+			body = {
+						'bn' : 'http://'+ip,
+						'bi' : int(timestamp),
+						'e' : [e]
+					}
+			test.myMqttClient.myPublish (idtopic+"date/time/timestamp/Sensor1/"+e['n']+'/', json.dumps(body),False)
 
-		test.myMqttClient.myPublish ("/ASD123/date/time/timestamp/Sensor1/", json.dumps(body),False)
+		#test.myMqttClient.myPublish (idtopic+"date/time/timestamp/Sensor1/", json.dumps(body),False)
 		counter += 1
+		a+=1
 		time.sleep(10)
 
 	test.end()

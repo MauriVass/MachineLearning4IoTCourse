@@ -26,9 +26,10 @@ class MyMQTT:
 		self.notifier.notify (msg.topic, msg.payload)
 
 
-	def myPublish (self, topic, msg):
+	def myPublish (self, topic, msg, feedback=True):
 		# if needed, you can do some computation or error-check before publishing
-		print ("publishing '%s' with topic '%s'" % (msg, topic))
+		if(feedback):
+			print ("publishing '%s' with topic '%s'" % (msg, topic))
 		# publish a message with a certain topic
 		self._paho_mqtt.publish(topic, msg, 2)
 
