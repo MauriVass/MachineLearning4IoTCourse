@@ -24,25 +24,27 @@ class DoSomething():
 
 	def notify(self, topic, msg):
 		# manage here your received message. You can perform some error-check here
-		print(topic,msg)
+		# print(topic,msg)
 		r = msg.decode('utf-8')
 		r = json.loads(r)
 		events = r['e']
-		temperature = events[0]
-		text = f"Temperature: {temperature['v']}{temperature['u']}"
-		#if('humidity' in events):
-		if(len(events)>1):
-			humidity = events[1]
-			text += f", Humidity: {humidity['v']}{humidity['u']}"
+		if(topic.find('temperature')>=0):
+			temperature = events[0]
+			text = f"Temperature: {temperature['v']}{temperature['u']}"
+		else:
+		# if(len(events)>1):
+			humidity = events[0]
+			text = f"Humidity: {humidity['v']}{humidity['u']}"
 		print(text)
 
 if __name__ == "__main__":
-	test = DoSomething("subscriber 2")
+	test = DoSomething("Subscriber TH")
 	test.run()
-	test.myMqttClient.mySubscribe("/ASD123/date/time/timestamp/Sensor1/")
+	test.myMqttClient.mySubscribe("/ABCDE12345/date/time/timestamp/Sensor1/temperature/")
+	test.myMqttClient.mySubscribe("/ABCDE12345/date/time/timestamp/Sensor1/humidity/")
 
 	a = 0
-	while (a < 30):
+	while (a < 20):
 		a += 1
 		time.sleep(1)
 

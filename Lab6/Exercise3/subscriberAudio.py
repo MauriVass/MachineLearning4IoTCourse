@@ -3,6 +3,8 @@ import sys
 sys.path.insert(0, './../Exercise1')
 from MyMQTT import MyMQTT
 import json
+import wave
+import pyaudio
 
 class DoSomething():
 	def __init__(self, clientID):
@@ -23,33 +25,35 @@ class DoSomething():
 		self.myMqttClient.stop ()
 
 	def notify(self, topic, msg):
-		# manage here your received message. You can perform some error-check here  
-		r = msg.decode('utf-8')
-		r = json.loads(r)
-		events = r['events']
-		audio = events['audio']
+		# manage here your received message. You can perform some error-check here 
+		# print(topic, msg)
+		if(topic.find('audio')>=0): 
+			r = msg.decode('utf-8')
+			r = json.loads(r)
+			events = r['e']
+			audio = events[0]
 
-		file_name = 'audio'+str(self.counter)+'.wav'
-		waveFile = wave.open(file_name,'wb')
-    	waveFile.setnchannels(1)
-		waveFile.setsampwidth(audio.get_sample_size(pyaudio.paInt16))
-		waveFile.setframerate(48000)
-		#Merge all the recorded frames as binary
-		waveFile.writeframes(b''.join(audio['vd']))
-		waveFile.close()
-		print('Stored: ',file_name)
+			file_name = 'audio'+str(self.counter)+'.wav'
+			waveFile = wave.open(file_name,'wb')
+			waveFile.setnchannels(1)
+			waveFile.setsampwidth(pyaudio.paInt16)
+			waveFile.setframerate(48000)
+			#Merge all the recorded frames as binary
+			waveFile.writeframes(b''.join(audio['vd']))
+			waveFile.close()
+			print('Stored: ',file_name)
 
 if __name__ == "__main__":
-	test = DoSomething("subscriber 1")
+	test = DoSomething("Subscriber Audio")
 	test.run()
-	test.myMqttClient.mySubscribe("/ASD123/date/time/timestamp/Sensor1/")
+	test.myMqttClient.mySubscribe("/ABCDE12345/date/time/timestamp/Sensor1/audio/")
 
 	a = 0
-	while (a < 30):
-		if(a%5):
+	while (a < 20):
+		if(a%3):
 			message = 'Record Audio, please <3'
-			test.myMqttClient.myPublish ("/ASD123/date/time/timestamp/Sensor1/", json.dumps(message), False)
+			test.myMqttClient.myPublish ("/ABCDE12345/date/time/timestamp/Sensor1/audio/Record/", json.dumps(message), False)
 		a += 1
-		time.sleep(4)
+		time.sleep(1)
 
 	test.end()
