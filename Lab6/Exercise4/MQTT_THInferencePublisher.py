@@ -4,6 +4,33 @@ import json
 from board import D4
 import adafruit_dht
 
+import sys
+sys.path.insert(0, './../Exercise1')
+from MyMQTT import MyMQTT
+
+class DoSomething():
+	def __init__(self, clientID):
+		# create an instance of MyMQTT class
+		self.clientID = clientID
+		self.myMqttClient = MyMQTT(self.clientID, "mqtt.eclipseprojects.io", 1883, self)
+
+		self.tep_samples = []
+		self.hum_samples = []
+
+	def run(self):
+		# if needed, perform some other actions befor starting the mqtt communication
+		print ("running %s" % (self.clientID))
+		self.myMqttClient.start()
+
+	def end(self):
+		# if needed, perform some other actions befor ending the software
+		print ("ending %s" % (self.clientID))
+		self.myMqttClient.stop ()
+
+	def notify(self, topic, msg):
+		# manage here your received message. You can perform some error-check here
+		print(topic,msg)
+
 class DataCollector():
 	def __init__(self):
 		self.dht_device = adafruit_dht.DHT11(D4)
@@ -59,18 +86,20 @@ if __name__ == "__main__":
 
 		ip = '2.44.137.33' + '/'
 		body = {
-					'bn' : 'http://'+ip,
-					'bi' : int(timestamp),
-					'e' : tem_events
-				}
+				'bn' : 'http://'+ip,
+				'bi' : int(timestamp),
+				'e' : tem_events
+			}
 		test.myMqttClient.myPublish (idtopic+"date/time/timestamp/Sensor1/temperature/", json.dumps(body),False)
 		body = {
-					'bn' : 'http://'+ip,
-					'bi' : int(timestamp),
-					'e' : hum_events
-				}
+				'bn' : 'http://'+ip,
+				'bi' : int(timestamp),
+				'e' : hum_events
+			}
 		test.myMqttClient.myPublish (idtopic+"date/time/timestamp/Sensor1/humidity/", json.dumps(body),False)
+		print('Published')
 
 		a+=1
 
 	test.end()
+
