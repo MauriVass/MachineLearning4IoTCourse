@@ -10,16 +10,17 @@ import datetime
 import requests
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model', type=str, erquired=True)
+parser.add_argument('--model', type=str, required=True)
 args = parser.parse_args()
-model = args['model']
+print(args)
+model = args.model
 
 audio = pyaudio.PyAudio()
 stream = audio.open(format=pyaudio.paInt16,
       channels=1,
       rate= 48000, input=True,
       frames_per_buffer=2400)
-stream.wait()
+stream.stop_stream()
 
 frames = []
 stream.start_stream()
@@ -33,15 +34,15 @@ audio = signal.resample_poly(audio, 1 ,3)
 audio = audio.astype(np.int16)
 buf = BytesIO()
 wavefile = wave.open(buf, 'wb')
-wavefile.setchannels(1)
+wavefile.setnchannels(1)
 wavefile.setsampwidth(2)
 wavefile.setframerate(16000)
 wavefile.writeframes(audio.tobytes())
 wavefile.close()
 
 #It is needed to send data over network since you can't send raw bytes
-audio_64_bytes = base64.b64encode(buf.read())
-audio_string = audio_b64bytes.decode()
+audio_b64_bytes = base64.b64encode(buf.read())
+audio_string = audio_b64_bytes.decode()
 
 timestamp = int(datetime.datetime.now().timestamp())
 
@@ -56,7 +57,7 @@ body = {
         }
 
 #Web service address
-url = 'http://:8080/' + model
+url = 'http://localhost:8080/' + model
 #The json.dump() is done automatically
 r = requests.put(url, json=body)
 
