@@ -1,29 +1,14 @@
 import time
 import sys
-sys.path.insert(0, './../Exercise1')
-from MyMQTT import MyMQTT
 import json
 import wave
 import pyaudio
+import datetime
 
-class DoSomething():
-	def __init__(self, clientID):
-		# create an instance of MyMQTT class
-		self.clientID = clientID
-		self.myMqttClient = MyMQTT(self.clientID, "mqtt.eclipseprojects.io", 1883, self) 
-		
-		self.counter = 0
+sys.path.insert(0, './../Exercise1')
+from DoSomething import DoSomething
 
-	def run(self):
-		# if needed, perform some other actions befor starting the mqtt communication
-		print ("running %s" % (self.clientID))
-		self.myMqttClient.start()
-
-	def end(self):
-		# if needed, perform some other actions befor ending the software
-		print ("ending %s" % (self.clientID))
-		self.myMqttClient.stop ()
-
+class Receiver(DoSomething):
 	def notify(self, topic, msg):
 		# manage here your received message. You can perform some error-check here 
 		# print(topic, msg)
@@ -44,15 +29,21 @@ class DoSomething():
 			print('Stored: ',file_name)
 
 if __name__ == "__main__":
-	test = DoSomething("Subscriber Audio")
+	test = Receiver("Subscriber Audio")
 	test.run()
-	test.myMqttClient.mySubscribe("/ABCDE12345/date/time/timestamp/Sensor1/audio/")
+	test.myMqttClient.mySubscribe("/ABCDE12345/Sensor1/audio/")
 
 	a = 0
+	ip = 'http://169.254.37.210/'
 	while (a < 20):
 		if(a%3):
-			message = 'Record Audio, please <3'
-			test.myMqttClient.myPublish ("/ABCDE12345/date/time/timestamp/Sensor1/audio/Record/", json.dumps(message), False)
+			timestamp = datetime.datetime.timestamp(date_time)
+			body = {
+						'bn' : ip,
+						'bi' : int(timestamp),
+						'e' : [{'n':'audio', 'u':'/', 't':0, 'vd': None}]
+					}
+			test.myMqttClient.myPublish("/ABCDE12345/Sensor1/record", json.dumps(body),False)
 		a += 1
 		time.sleep(1)
 
