@@ -1,31 +1,11 @@
 import time
 import sys
-sys.path.insert(0, './../Exercise1')
-from MyMQTT import MyMQTT
 import json
 import tensorflow as tf
+sys.path.insert(0, './../Exercise1')
+from DoSomething import DoSomething
 
-class DoSomething():
-	def __init__(self, clientID):
-		# create an instance of MyMQTT class
-		self.clientID = clientID
-		self.myMqttClient = MyMQTT(self.clientID, "mqtt.eclipseprojects.io", 1883, self) 
-
-		self.temp_samples = []
-		self.hum_samples = []
-		self.temp_avaible = False
-		self.hum_avaible = False
-
-	def run(self):
-		# if needed, perform some other actions befor starting the mqtt communication
-		print ("running %s" % (self.clientID))
-		self.myMqttClient.start()
-
-	def end(self):
-		# if needed, perform some other actions befor ending the software
-		print ("ending %s" % (self.clientID))
-		self.myMqttClient.stop ()
-
+class Receiver(DoSomething):
 	def notify(self, topic, msg):
 		# manage here your received message. You can perform some error-check here
 		# print(topic,msg)
@@ -47,8 +27,6 @@ class DoSomething():
 			for t,h in zip(self.temp_samples,self.hum_samples):
 				data.append([t,h])
 			prediction = self.Predict(model_type='',data=data)
-			print(data)
-			#print(f'Data: \n\tTemp: {data[:,0]}, \n\t {data[:,1]}')
 			print(f'Prediction. Temp: {prediction[0]}, Hum: {prediction[1]}')
 			
 
@@ -61,7 +39,6 @@ class DoSomething():
 		input_details = interpreter.get_input_details()
 		output_details = interpreter.get_output_details()
 
-		#tf.Tensor([[[ 9.107597 75.904076]]], shape=(1, 1, 2), dtype=float32) tf.Tensor([[[ 8.654227 16.557089]]], shape=(1, 1, 2), dtype=float32)
 		mean = tf.constant( [[[ 9.107597, 75.904076]]], shape=(1, 1, 2), dtype=tf.float32 )
 		std = tf.constant( [[[ 8.654227, 16.557089]]], shape=(1, 1, 2), dtype=tf.float32 )
 		features = (data - mean) / (std + 1.e-6)
@@ -77,10 +54,10 @@ class DoSomething():
 		return predict
 
 if __name__ == "__main__":
-	test = DoSomething("Subscriber TH")
+	test = Receiver("Subscriber TH")
 	test.run()
-	test.myMqttClient.mySubscribe("/ABCDE12345/date/time/timestamp/Sensor1/temperature/")
-	test.myMqttClient.mySubscribe("/ABCDE12345/date/time/timestamp/Sensor1/humidity/")
+	test.myMqttClient.mySubscribe("/ABCDE12345/Sensor1/temperature/")
+	test.myMqttClient.mySubscribe("/ABCDE12345/Sensor1/humidity/")
 
 	a = 0
 	while (a < 200):
