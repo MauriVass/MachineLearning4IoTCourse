@@ -1,4 +1,7 @@
-from DoSomething1 import DoSomething
+import sys
+sys.path.insert(0, './../Exercise1')
+from DoSomething import DoSomething
+
 import time
 import datetime
 import json
@@ -17,13 +20,12 @@ if __name__ == "__main__":
 		date_str = str(date_time.date())
 		time_str = str(date_time.time()).split('.')[0]
 		message = {'date':date_str}
-		test.myMqttClient.myPublish ("/ASD123/date/", json.dumps(message), False)
 		message['time'] = time_str
-		test.myMqttClient.myPublish ("/ASD123/date/time/", json.dumps(message))
+		test.myMqttClient.myPublish ("/ASD123/datetime/", json.dumps(message))
 		
 		if(counter==2):
 			message['timestamp'] = timestamp
-			test.myMqttClient.myPublish ("/ASD123/date/time/timestamp/", json.dumps(message))
+			test.myMqttClient.myPublish ("/ASD123/timestamp/", json.dumps(message))
 			counter=0
 
 		counter += 1
