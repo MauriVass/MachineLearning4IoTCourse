@@ -26,7 +26,7 @@ The course aims to introduce the problems related to the implementation of machi
 4.  Optimizations:
       * Post-Training Quantization (PTQ)
       * Structured Pruning via Width Scaling
-      * Structured Pruning via Width Scaling
+      * Magnitude-Based Pruning
 
 5. RESTfull applications
 
